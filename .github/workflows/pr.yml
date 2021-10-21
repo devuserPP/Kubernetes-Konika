@@ -1,0 +1,42 @@
+name: CI
+on: 
+ watch:
+    types: [started]
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    name: build example and deploy to minikube
+    steps:
+    - uses: actions/checkout@v2
+    - name: Start minikube
+      uses: medyagh/setup-minikube@master
+    - name: Try the cluster !
+      run: 
+        kubectl get pods -A
+    - name: Build image
+      run: |
+        export SHELL=/bin/bash
+        eval $(minikube -p minikube docker-env)
+        docker build -f ./Dockerfile -t local/example .
+        echo -n "verifying images:"
+        docker images             
+    # - name: Install Ingress controller      
+    #  run: |      
+    #    minikube addons enable ingress
+    - name: Check status of Ingress controller      
+      run: 
+        kubectl get pods -n kube-system    
+    - name: Deploy to minikube
+      run:         
+        kubectl apply -f deploy-to-minikube.yaml
+    - name: Show Deployment status
+      run: |
+        kubectl get deployments
+        kubectl get pods
+        kubectl get services    
+    - name: Test service URLs
+      run: |
+        minikube service list
+        minikube service example --url
+        echo "------------------opening the service------------------"
+        curl $(minikube service example --url)    
